@@ -10,8 +10,17 @@ the Python standard library, touches no network, reads no clock, and
 writes the same bytes on every run, so two runs are byte-identical.
 """
 
+import hashlib
 import os
 import sys
+
+
+def sha256_of(path: str) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
 
 
 def main() -> int:
@@ -27,13 +36,18 @@ def main() -> int:
     with open(target, "wb") as f:
         f.write(data)
 
-    # Confirm the copy is complete: the gate scores the exact bytes written.
+    # Confirm the copy is byte-identical, not just the same length: a
+    # same-length but corrupted write must fail loudly, since the gate
+    # scores the exact bytes written.
     written = os.path.getsize(target)
-    if written != len(data):
-        print(f"entry.png: wrote {written} of {len(data)} bytes",
+    digest = sha256_of(target)
+    if written != len(data) or digest != sha256_of(source):
+        print(f"entry.png: copy failed integrity check "
+              f"(wrote {written} of {len(data)} bytes)",
               file=sys.stderr)
         return 1
-    print(f"entry.png: {written} bytes -> {target}", file=sys.stderr)
+    print(f"entry.png: {written} bytes -> {target} (sha256 {digest})",
+          file=sys.stderr)
     return 0
 
 
