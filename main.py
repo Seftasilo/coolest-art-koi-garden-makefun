@@ -41,7 +41,8 @@ def main() -> int:
     # scores the exact bytes written.
     written = os.path.getsize(target)
     digest = sha256_of(target)
-    if written != len(data) or digest != sha256_of(source):
+    if (written != len(data) or digest != sha256_of(source)
+            or os.path.getsize(source) != written):
         print(f"entry.png: copy failed integrity check "
               f"(wrote {written} of {len(data)} bytes)",
               file=sys.stderr)
